@@ -1,12 +1,14 @@
 #include <msp430.h>
 #include "libTimer.h"
 
-#define LED_RED BIT0               // P1.0
-#define LED_GREEN BIT6             // P1.6
+#define LED_RED BIT6               // P1.6
+#define LED_GREEN BIT0             // P1.0
 #define LEDS (LED_RED | LED_GREEN)
 
 #define SW1 BIT3		/* switch1 is p1.3 */
 #define SWITCHES SW1		/* only 1 switch on this board */
+#define BLINK_FAST 32
+#define BLINK_SLOW 128
 
 void switch_init() {
   P1REN |= SWITCHES;		/* enables resistors for switches */
@@ -34,7 +36,13 @@ void main(void)
   or_sr(0x18);  // CPU off, GIE on
 } 
 
-static int buttonDown;
+static char green_on = 0;
+static enum State{OFF, RED_FAST_GREEN_SLOW, GREEN_FAST_RED_SLOW, SLOW_SWITCH, BOTH_ON} state = OFF; // Default to off
+
+static void next_state(void)
+{
+  state = (state + 1) % 5;
+}
 
 void
 switch_interrupt_handler()
@@ -45,12 +53,8 @@ switch_interrupt_handler()
   P1IES |= (p1val & SWITCHES);	/* if switch up, sense down */
   P1IES &= (p1val | ~SWITCHES);	/* if switch down, sense up */
 
-  if (p1val & SW1) {		/* button up */
-    P1OUT &= ~LED_GREEN;
-    buttonDown = 0;
-  } else {			/* button down */
-    P1OUT |= LED_GREEN;
-    buttonDown = 1;
+  if (!(p1val & SW1)) {		/* button down */
+    next_state();
   }
 }
 
@@ -64,17 +68,56 @@ __interrupt_vec(PORT1_VECTOR) Port_1(){
   }
 }
 
+static void trigger_led(int blink_var, char led)
+{
+  if (!blink_var)
+    P1OUT |= led;
+  else
+    P1OUT &= ~led;
+}
+
+static inline void trigger_led_with_input(char input, int blink_var, char led)
+{
+  if (!blink_var && input)
+    P1OUT |= led;
+  else
+    P1OUT &= ~led;
+}
+
+
 void
 __interrupt_vec(WDT_VECTOR) WDT()	/* 250 interrupts/sec */
 {
-  static int blink_count = 0;
-  switch (blink_count) { 
-  case 6: 
-    blink_count = 0;
-    P1OUT |= LED_RED;
-    break;
-  default:
-    blink_count ++;
-    if (!buttonDown) P1OUT &= ~LED_RED; /* don't blink off if button is down */
+  static int blink_count_fast = 0;
+  static int blink_count_slow = 0;
+
+  if (++blink_count_fast >= BLINK_FAST) {
+    blink_count_fast = 0;
+  }
+
+  if (++blink_count_slow >= BLINK_SLOW) {
+    blink_count_slow = 0;
+    green_on = !green_on;
+  }
+
+  switch (state) {
+    case OFF:
+      P1OUT &= ~LEDS;
+      break;
+    case RED_FAST_GREEN_SLOW:
+      trigger_led(blink_count_fast, LED_RED);
+      trigger_led(blink_count_slow, LED_GREEN);
+      break;
+    case GREEN_FAST_RED_SLOW:
+      trigger_led(blink_count_fast, LED_GREEN);
+      trigger_led(blink_count_slow, LED_RED);
+      break;
+    case SLOW_SWITCH:
+      trigger_led_with_input(green_on, blink_count_slow, LED_GREEN);
+      trigger_led_with_input(!green_on, blink_count_slow, LED_RED);
+      break;
+    case BOTH_ON:
+      P1OUT |= LEDS;
+      break;
   }
 } 
