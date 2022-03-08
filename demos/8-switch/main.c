@@ -8,6 +8,8 @@
 #define SW1 BIT3		/* switch1 is p1.3 */
 #define SWITCHES SW1		/* only 1 switch on this board */
 
+enum State{OFF, RED_P, RED_U, GREEN_P, GREEN_U};
+
 void main(void) 
 {  
   configureClocks();
@@ -23,6 +25,57 @@ void main(void)
   or_sr(0x18);  // CPU off, GIE on
 } 
 
+void handle_unpressed(enum State* state)
+{
+  switch (*state) {
+    // From OFF, GREEN_U, and GREEN_P, we transition (or stay at)
+    // green unpressed
+    case GREEN_U:
+    case GREEN_P: 
+    case OFF: 
+      *state = GREEN_U; // Start with green from off state
+      P1OUT |= LED_GREEN;
+      P1OUT &= ~LED_RED;
+      break;
+    case RED_U: // stay at red unpressed
+    case RED_P: // goto red unpressed
+      *state = RED_U;
+      P1OUT |= LED_RED;
+      P1OUT &= ~LED_GREEN;
+      break;
+  }
+}
+
+
+void handle_pressed(enum State* state)
+{
+  switch(*state) {
+    case RED_U: // go to green pressed
+    case GREEN_P: // stay at green pressed
+    case OFF: // default to green pressed
+      *state = GREEN_P; // Start with green from off state
+      P1OUT |= LED_GREEN;
+      P1OUT &= ~LED_RED;
+      break;
+    case RED_P: // stay at red pressed
+    case GREEN_U: // go to red pressed
+      *state = RED_P;
+      P1OUT |= LED_RED;
+      P1OUT &= ~LED_GREEN;
+      break;
+  }
+}
+
+void update_state(char unpressed)
+{
+  static enum State state = OFF; // Default to everything off
+  if (unpressed)
+    handle_unpressed(&state);
+  else
+    handle_pressed(&state);
+  
+}
+
 void
 switch_interrupt_handler()
 {
@@ -32,13 +85,7 @@ switch_interrupt_handler()
   P1IES |= (p1val & SWITCHES);	/* if switch up, sense down */
   P1IES &= (p1val | ~SWITCHES);	/* if switch down, sense up */
 
-  if (!(P1OUT & LED_GREEN) && !(P1OUT & LED_RED)) // Both leds off, start green
-    P1OUT |= LED_GREEN;
-
-  if (!(p1val & SW1)) {
-    P1OUT ^= LED_GREEN;
-    P1OUT ^= LED_RED;
-  }
+  update_state(p1val & SW1);
 }
 
 
