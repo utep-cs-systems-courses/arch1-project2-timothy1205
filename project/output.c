@@ -1,8 +1,8 @@
 #include <msp430.h>
 #include "libTimer.h"
-#include "buzzer.h"
+#include "output.h"
 
-void buzzer_init()
+void buzzer_init(void)
 {
     /* 
        Direct timer A output "TA0.1" to P2.6.  
@@ -26,8 +26,8 @@ void buzzer_set_period(short cycles)
   CCR1 = cycles >> 1;		/* one half cycle */
 }
 
-
-    
-    
-  
-
+void led_init(void)
+{
+  P1DIR |= LEDS;
+  P1OUT &= ~LEDS;		/* leds initially off */
+}

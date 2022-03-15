@@ -1,5 +1,5 @@
 # makfile configuration
-COMMON_OBJECTS  = 
+OBJS 		= input.o output.o main.o
 CPU             = msp430g2553
 CFLAGS          = -mmcu=${CPU} -I../demos/h -L/opt/ti/msp430_gcc/include
 
@@ -10,7 +10,7 @@ AS              = msp430-elf-as
 all: toy.elf 
 
 #additional rules for files
-toy.elf: ${COMMON_OBJECTS} buzzer.o main.o ../demos/lib/libTimer.a
+toy.elf: ${OBJS} ../demos/lib/libTimer.a
 	${CC} ${CFLAGS} -o $@ $^
 
 load: toy.elf
@@ -19,7 +19,8 @@ load: toy.elf
 clean:
 	rm -f *.o *.elf
 
-buzzer.c: buzzer.h
-main.c:
+input.c: input.h
+output.c: output.h
+main.c: input.h output.h
 
 
