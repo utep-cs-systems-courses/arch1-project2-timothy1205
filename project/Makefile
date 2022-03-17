@@ -1,5 +1,5 @@
 # makfile configuration
-OBJS 		= input.o output.o main.o
+OBJS 		= input.o output.o morse.o main.o
 CPU             = msp430g2553
 CFLAGS          = -mmcu=${CPU} -I../demos/h -L/opt/ti/msp430_gcc/include
 
@@ -21,6 +21,7 @@ clean:
 
 input.c: input.h
 output.c: output.h
+morse.c: morse.h
 main.c: input.h output.h
 
 
