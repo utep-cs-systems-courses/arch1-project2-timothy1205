@@ -1,7 +1,8 @@
 #include <msp430.h>
+#include "libTimer.h"
 #include "input.h"
 #include "output.h"
-#include "libTimer.h"
+#include "toy.h"
 
 void wdt_init(void)
 {
@@ -31,4 +32,5 @@ void __interrupt_vec(PORT2_VECTOR) Port_2()
 
 void __interrupt_vec(WDT_VECTOR) WDT()	/* 250 interrupts/sec */
 {
+  led_timer_interrupt();
 } 

@@ -74,8 +74,7 @@ void led_red_off(void)
   P1OUT &= ~LED_RED;
 }
 
-void led_void_blink(void)
-{
+void led_red_blink(void) {
   if (led_green == LED_BLINK)
     led_green_off();
 
