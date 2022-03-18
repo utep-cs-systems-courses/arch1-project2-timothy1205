@@ -15,7 +15,9 @@ void main(void)
   switch_init();
   led_init();
   wdt_init();
-    
+  
+  toy_reset();
+  
   or_sr(0x18);  // CPU off, GIE on
 } 
 
