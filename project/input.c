@@ -1,6 +1,7 @@
 #include <msp430.h>
 #include "libTimer.h"
 #include "input.h"
+#include "states.h"
 
 void switch_interrupt_handler(void)
 {
@@ -10,9 +11,11 @@ void switch_interrupt_handler(void)
   P2IES |= (p2val & SWITCHES);	/* if switch up, sense down */
   P2IES &= (p2val | ~SWITCHES);	/* if switch down, sense up */
 
-  if (p2val & SW1) {		/* button up */
-  } else {			/* button down */
-  }
+  if (p2val & SWITCHES)		/* button up */
+    button_unpressed(p2val);
+  else			/* button down */
+    button_pressed(p2val);
+  
 }
 
 void switch_init(void) 
