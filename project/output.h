@@ -4,10 +4,14 @@
 #define LED_RED BIT6               // P1.6
 #define LED_GREEN BIT0             // P1.0
 #define LEDS (LED_RED | LED_GREEN)
-
-
+typedef enum BuzzerState{ BUZZER_PLAYING, BUZZER_START, BUZZER_BETWEEN_PART, BUZZER_OFF } BuzzerState;
 void buzzer_init(void);
 void buzzer_set_period(short cycles);
+void buzzer_stop(void);
+void buzzer_play_preset(unsigned char preset);
+void buzzer_play_message(char *msg);
+void buzzer_timer_interrupt(void);
+
 
 #define LED_ON_INTERRUPTS 250
 #define LED_OFF_INTERRUPTS 250

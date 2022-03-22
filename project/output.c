@@ -1,6 +1,16 @@
 #include <msp430.h>
 #include "libTimer.h"
 #include "output.h"
+#include "morse.h"
+
+#define MORSE_BUFFER_LENGTH 200
+#define BUZZER_MORSE_CYCLES 300
+#define BUZZER_REJECT_CYCLES 1000
+
+static char morse_buffer[MORSE_BUFFER_LENGTH];
+static char *buffer_pos = 0;
+static BuzzerState buzzer_state = BUZZER_OFF;
+static unsigned int buffer_counter = 0;
 
 void buzzer_init(void)
 {
@@ -16,14 +26,140 @@ void buzzer_init(void)
     P2SEL &= ~BIT7; 
     P2SEL |= BIT6;
     P2DIR = BIT6;		/* enable output to speaker (P2.6) */
-
-
 }
 
 void buzzer_set_period(short cycles)
 {
   CCR0 = cycles; 
   CCR1 = cycles >> 1;		/* one half cycle */
+}
+
+void buzzer_stop(void)
+{
+  buzzer_set_period(0);
+  buzzer_state = BUZZER_OFF;
+}
+
+void buzzer_play_preset(unsigned char preset)
+{
+  switch (preset) {
+    case 1:
+      buzzer_play_message("why hello there");
+      break;
+    case 2:
+      buzzer_play_message("enjoy this random message");
+      break;
+  }
+}
+
+void buzzer_play_message(char *msg)
+{
+  // Reset buffer
+  morse_buffer[0] = '\0';
+  buffer_pos = morse_buffer;
+  buzzer_state = BUZZER_START;
+  
+  // Fill our buffer with the trasnlation
+  morse_translate(msg, morse_buffer);
+}
+
+static inline int get_interrupts(char c)
+{
+  switch (c) {
+    case '*':
+      return get_dit_interrupts();
+    case '-':
+    case ';':
+      return get_dah_interrupts();
+    case ' ':
+      return get_space_interrupts();
+  }
+}
+
+void buzzer_timer_interrupt(void)
+{
+  if (buzzer_state == BUZZER_OFF)
+    return; // Nothing to do
+  
+  buffer_counter++;
+
+  if (buzzer_state == BUZZER_BETWEEN_PART) {
+//    led_green_on();
+//    led_red_off();
+  } else if (*buffer_pos == '*') {
+//    led_green_on();
+//    led_red_off();
+  } else if (*buffer_pos == '-') {
+//    led_green_off();
+//    led_red_on();
+  } else if (*buffer_pos == ';') {
+//    led_green_off();
+//    led_green_off();
+  }
+  
+  if (buzzer_state == BUZZER_BETWEEN_PART && buffer_counter < get_interrupts('*')) {
+    // Check if the space between parts is done
+    return;
+  } else if (buzzer_state == BUZZER_PLAYING && buffer_counter < get_interrupts(*buffer_pos)) {
+    // Check if the period for everything else is done (dit, dah, word/letter space)
+    return;
+  }
+
+  // Handle what happens at the end of a state (unless buzzer_start)
+  // If we finished playing a character, we need to wait 1 unit before going to the next,
+  // unless that character was a word/letter space.
+  // If we finished a part space, we always go to the next character.
+  switch (buzzer_state) {
+    case BUZZER_START:
+      // Starting our first character
+      buzzer_state = BUZZER_PLAYING;
+      break;
+    case BUZZER_PLAYING:
+      // Finished a character 
+      if (*buffer_pos == ';' || *buffer_pos == ' ') {
+        // doesn't need part space
+        buffer_pos++;
+      } else {
+        buzzer_state = BUZZER_BETWEEN_PART;
+        buffer_counter = 0;
+        buzzer_set_period(0);
+        led_green_on();
+        led_red_off();
+        return;
+      }
+      break;
+    case BUZZER_BETWEEN_PART:
+      buzzer_state = BUZZER_PLAYING;
+      buffer_pos++;
+      break;
+  }
+
+  // If we have a space, we pause, otherwise we play
+  switch (*buffer_pos) {
+    case '*':
+      buzzer_set_period(BUZZER_REJECT_CYCLES);
+      led_green_on();
+      led_red_off();
+      break;
+    case '-':
+      buzzer_set_period(BUZZER_MORSE_CYCLES);
+      led_green_off();
+      led_red_on();
+      break;
+    case ' ':
+    case ';':
+      buzzer_set_period(0);
+      led_green_on();
+      led_red_on();
+      break;
+    case '\0':
+      toy_reset();
+      led_green_off();
+      led_red_off();
+  }
+
+  // Reset counter
+  buffer_counter = 0;
 }
 
 static LedState led_green = LED_OFF;
@@ -65,7 +201,7 @@ void led_green_blink(void)
 void led_red_on(void)
 {
   led_red = LED_ON;
-  P1OUT |= LED_GREEN;
+  P1OUT |= LED_RED;
 }
 
 void led_red_off(void)

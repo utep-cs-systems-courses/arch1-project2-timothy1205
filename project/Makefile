@@ -20,7 +20,7 @@ clean:
 	rm -f *.o *.elf
 
 input.c: input.h toy.h
-output.c: output.h
+output.c: output.h morse.h toy.h
 morse.c: morse.h
 toy.c: toy.h output.h
 main.c: input.h output.h toy.h

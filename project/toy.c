@@ -7,33 +7,33 @@ static ToyState state = STATE_WAITING;
 
 void toy_reset(void)
 { state = STATE_WAITING; 
-  led_red_off();
-  led_green_on();
+//  led_red_off();
+//  led_green_on();
   buzzer_stop();
 }
 
 void toy_play_preset(unsigned char preset)
 {
   state = STATE_OUTPUTTING_MORSE;
-  led_green_off();
-  led_red_blink();
+//  led_green_off();
+ // led_red_blink();
   buzzer_play_preset(preset);
 }
 
 void toy_listen(void)
 {
   state = STATE_LISTENING_MORSE;
-  led_red_off();
-  led_green_blink();
-  morse_listen();
+//  led_red_off();
+//  led_green_blink();
+  //morse_listen();
 }
 
 void toy_reject_input(void)
 {
   state = STATE_REJECTED_MORSE;
-  led_red_on();
-  led_green_off();
-  buzzer_reject();
+//  led_red_on();
+//  led_green_off();
+  //buzzer_reject();
 }
 
 static char press_acknowledged = 0;
@@ -54,7 +54,7 @@ void button_pressed(char p2val)
         toy_listen();
         break;
       case STATE_LISTENING_MORSE:
-        morse_press_start();
+        //morse_press_start();
         break;
     }
   } else if (!(p2val & SW2) && !(press_acknowledged & SW2)) {
@@ -84,7 +84,7 @@ void button_unpressed(char p2val)
     // Button is unpressed and not yet acknowledged
     unpress_acknowledged |= SW1;
     press_acknowledged &= ~SW1;
-    morse_press_stop();
+    //morse_press_stop();
   } 
   if (p2val & SW2 && !(unpress_acknowledged & SW2)) {
     unpress_acknowledged |= SW2;
