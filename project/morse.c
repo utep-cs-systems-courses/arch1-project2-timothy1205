@@ -1,7 +1,6 @@
 #include <string.h>
 #include "morse.h"
 #define WORD_BUFFER_LENGTH 10
-#define MORSE_BUFFER_LENGTH 30
 #define DICTIONARY_OFFSET 97
 
 // * for dit, - for dah, ; for space between letters

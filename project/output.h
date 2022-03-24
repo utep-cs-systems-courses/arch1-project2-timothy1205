@@ -12,9 +12,6 @@ void buzzer_play_preset(unsigned char preset);
 void buzzer_play_message(char *msg);
 void buzzer_timer_interrupt(void);
 
-
-#define LED_ON_INTERRUPTS 250
-#define LED_OFF_INTERRUPTS 250
 typedef enum LedState{ LED_ON, LED_OFF, LED_BLINK } LedState;
 void led_init(void);
 void led_green_on(void);

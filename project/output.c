@@ -2,10 +2,14 @@
 #include "libTimer.h"
 #include "output.h"
 #include "morse.h"
+#include "toy.h"
 
 #define MORSE_BUFFER_LENGTH 200
-#define BUZZER_MORSE_CYCLES 300
-#define BUZZER_REJECT_CYCLES 1000
+#define BUZZER_DIT_CYCLES 1000
+#define BUZZER_DAH_CYCLES 300
+
+#define LED_ON_INTERRUPTS 250
+#define LED_OFF_INTERRUPTS 100
 
 static char morse_buffer[MORSE_BUFFER_LENGTH];
 static char *buffer_pos = 0;
@@ -49,6 +53,8 @@ void buzzer_play_preset(unsigned char preset)
     case 2:
       buzzer_play_message("enjoy this random message");
       break;
+    case 3:
+      buzzer_play_message("given enough eyeballs all bugs are shallow");
   }
 }
 
@@ -82,20 +88,6 @@ void buzzer_timer_interrupt(void)
     return; // Nothing to do
   
   buffer_counter++;
-
-  if (buzzer_state == BUZZER_BETWEEN_PART) {
-//    led_green_on();
-//    led_red_off();
-  } else if (*buffer_pos == '*') {
-//    led_green_on();
-//    led_red_off();
-  } else if (*buffer_pos == '-') {
-//    led_green_off();
-//    led_red_on();
-  } else if (*buffer_pos == ';') {
-//    led_green_off();
-//    led_green_off();
-  }
   
   if (buzzer_state == BUZZER_BETWEEN_PART && buffer_counter < get_interrupts('*')) {
     // Check if the space between parts is done
@@ -117,9 +109,10 @@ void buzzer_timer_interrupt(void)
     case BUZZER_PLAYING:
       // Finished a character 
       if (*buffer_pos == ';' || *buffer_pos == ' ') {
-        // doesn't need part space
+        // space characters don't need an additional part space
         buffer_pos++;
       } else {
+        // start part space
         buzzer_state = BUZZER_BETWEEN_PART;
         buffer_counter = 0;
         buzzer_set_period(0);
@@ -129,6 +122,7 @@ void buzzer_timer_interrupt(void)
       }
       break;
     case BUZZER_BETWEEN_PART:
+      // we always move to the next character after part space
       buzzer_state = BUZZER_PLAYING;
       buffer_pos++;
       break;
@@ -137,12 +131,12 @@ void buzzer_timer_interrupt(void)
   // If we have a space, we pause, otherwise we play
   switch (*buffer_pos) {
     case '*':
-      buzzer_set_period(BUZZER_REJECT_CYCLES);
+      buzzer_set_period(BUZZER_DIT_CYCLES);
       led_green_on();
       led_red_off();
       break;
     case '-':
-      buzzer_set_period(BUZZER_MORSE_CYCLES);
+      buzzer_set_period(BUZZER_DAH_CYCLES);
       led_green_off();
       led_red_on();
       break;
@@ -153,12 +147,11 @@ void buzzer_timer_interrupt(void)
       led_red_on();
       break;
     case '\0':
+      // End of message, go back to default state
       toy_reset();
-      led_green_off();
-      led_red_off();
   }
 
-  // Reset counter
+  // Reset counter after every action
   buffer_counter = 0;
 }
 
@@ -189,11 +182,14 @@ void led_green_off(void)
 
 void led_green_blink(void)
 {
+  // Only one LED will ever blink at once
   if (led_green == LED_BLINK)
     led_red_off();
 
   led_green = LED_BLINK;
+  // Reset blink counter
   led_counter = 0;
+  // Signal that the blink state is set to ON
   led_blink_on = 1;
   P1OUT |= LED_GREEN;
 }
@@ -224,18 +220,22 @@ inline static void led_blink_toggle(void)
 {
   led_counter = 0;
   led_blink_on = !led_blink_on;
+  // If we are blinking are green is set to blink,
+  // we toggle green, otherwise toggle red
   P1OUT ^= (led_green == LED_BLINK ? LED_GREEN : LED_RED);
 }
 
 void led_timer_interrupt(void)
 {
   // If no LEDS are blinking exit early
-  if (led_green != LED_BLINK && LED_RED != LED_BLINK)
+  if (led_green != LED_BLINK && led_red != LED_BLINK)
     return;
 
   // At most only one LED will ever be blinking
   if (led_blink_on && led_counter++ >= LED_ON_INTERRUPTS)
+    // led is on and we passed our ON counter limit
     led_blink_toggle();
   else if (!led_blink_on && led_counter++ >= LED_OFF_INTERRUPTS)
+    // led is off and we passed our OFF counter limit
     led_blink_toggle();
 }
