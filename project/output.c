@@ -183,7 +183,7 @@ void led_green_off(void)
 void led_green_blink(void)
 {
   // Only one LED will ever blink at once
-  if (led_green == LED_BLINK)
+  if (led_red == LED_BLINK)
     led_red_off();
 
   led_green = LED_BLINK;
