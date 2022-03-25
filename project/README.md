@@ -12,3 +12,8 @@ While playing a message, the the buzzer will use different tones for dots (dits)
 When a dot is played, only the green LED will be solid. During a dash, only the red LED will be
 solid. During a pause between a word or letter, both LEDs will be solid. During a pause between a
 part, however, only the green LED will be solid.
+
+### Building
+* `make` will build the project
+* `make load` will build and load the project onto the msp430
+* `make clean` will delete all the generated files
