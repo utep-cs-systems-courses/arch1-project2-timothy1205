@@ -37,13 +37,14 @@ void morse_translate(char *msg, char *buffer)
   while (*msg != '\0') {
     // a starts at 97
     unsigned char i = *msg - DICTIONARY_OFFSET;
-    if (i > 26) 
-      return; // Shouldn't be possible
 
     if (*msg == ' ') {
       // Preserve spaces
       strcat(buffer, " ");
     } else {
+      if (i > 26)
+	return; // Shouldn't be possible
+      
       // Append dictionary translation to buffer
       strcat(buffer, dictionary[i]);
     }
